@@ -1,18 +1,19 @@
 #! /usr/bin/env python
-#-*- coding: ISO-8859-1 -*-
+# -*- coding: utf-8 -*-
 """retest
 A simple Server which enables tests of Python regular expressions
 (re module) in a webbrowser. Uses SimpleHTTPServer and AJAX.
 
 Handles both static application pages (HTML and
-javascripts and possibly other text formats) via ``GET`` 
+javascripts and possibly other text formats) via ``GET``
 and AJAX calls via ``POST``. Path ``/exit`` is used to stop the server.
 
-:Author: Christof Höke (main developer)
-:Author: James Thiele
+:Author: Christof HÃ¶ke ([up to 0.6.1] main developer)
+:Author: James Thiele [up to 0.6.1]
+:Author: Mike Scalora [0.7.0 to]
 :License: http://creativecommons.org/licenses/by/2.5/
 """
-__version__ = '0.6.1'
+__version__ = '0.7.0'
 
 import cgi
 import re
@@ -36,20 +37,20 @@ content_types = types_map
 
 
 class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
-    
-    def sendResponseWithOutput(self, response, content_type, out):
+
+    def send_response_with_output(self, response, content_type, out):
         """
         handles both str and unicode types
         """
-        if type(out) is types.UnicodeType:
+        if isinstance(out, types.UnicodeType):
             out = out.encode('utf-8')
-        
+
         self.send_response(response)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", len(out))
         self.end_headers()
         self.wfile.write(out)
- 
+
     def do_GET(self):
         global stop
         p = str(self.path)[1:]
@@ -63,14 +64,15 @@ class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 out = open(p).read()
             response = 200
             content_type = content_types.get(os.path.splitext(p)[1], DEFAULTTYPE)
-        except:
+        except (OSError, IOError) as e:
             out = u'File not found: %s' % p
             response = 404
             content_type = "text/plain;charset=utf-8"
 
-        self.sendResponseWithOutput(response, content_type, out)
+        self.send_response_with_output(response, content_type, out)
 
-    def _seq2str(self, seq):
+    @staticmethod
+    def _seq2str(seq):
         """
         converts sequence of strings or tuples to string to be returned
         to AJAX call
@@ -85,7 +87,8 @@ class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 out += '\n'
         return out
 
-    def _dict2str(self, d):
+    @staticmethod
+    def _dict2str(d):
         """
         converts dict to string to be returned to AJAX call
         """
@@ -116,7 +119,7 @@ class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             out = u'ERROR: %s' % e
         else:
             results = getattr(cre, method)(txt)
-            
+
             if results:
                 # list result
                 if type(results) == types.ListType:
@@ -138,12 +141,12 @@ class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         """
         test a re
         """
-        length = int(self.headers.getheader('content-length'))        
+        length = int(self.headers.getheader('content-length'))
         qs = self.rfile.read(length)
         params = dict(cgi.parse_qsl(qs, keep_blank_values=1))
         out = self.do_re(**params)
-                    
-        self.sendResponseWithOutput(200, DEFAULTTYPE, out)
+
+        self.send_response_with_output(200, DEFAULTTYPE, out)
 
 
 class StoppableHTTPServer(BaseHTTPServer.HTTPServer):
