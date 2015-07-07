@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /usr/bin/env python
 #-*- coding: ISO-8859-1 -*-
 """retest
 A simple Server which enables tests of Python regular expressions
@@ -28,15 +28,16 @@ import os.path
 
 PATH = ''
 PORT = 8087
-DEFAULTPATH = 'retest.html'
+DEFAULTFILE = 'retest.html'
+DEFAULTPATH = os.path.join(os.path.realpath(os.path.join(__file__, os.pardir)), DEFAULTFILE)
 DEFAULTTYPE = "text/html;charset=utf-8"
 stop = False
-contentTypes = types_map
+content_types = types_map
 
 
 class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     
-    def sendResponseWithOutput(self, response, contentType, out):
+    def sendResponseWithOutput(self, response, content_type, out):
         """
         handles both str and unicode types
         """
@@ -44,7 +45,7 @@ class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             out = out.encode('utf-8')
         
         self.send_response(response)
-        self.send_header("Content-Type", contentType)
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", len(out))
         self.end_headers()
         self.wfile.write(out)
@@ -55,21 +56,19 @@ class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if not p:
             p = DEFAULTPATH
         try:
-            ## print "path='%s'" % p
             if p == 'exit':
                 stop = True
                 out = u'bye'
             else:
                 out = open(p).read()
             response = 200
-            ## print os.path.splitext(p)[1]
-            contentType = contentTypes.get(os.path.splitext(p)[1], DEFAULTTYPE)
+            content_type = content_types.get(os.path.splitext(p)[1], DEFAULTTYPE)
         except:
             out = u'File not found: %s' % p
             response = 404
-            contentType = "text/plain;charset=utf-8"
+            content_type = "text/plain;charset=utf-8"
 
-        self.sendResponseWithOutput(response, contentType, out)
+        self.sendResponseWithOutput(response, content_type, out)
 
     def _seq2str(self, seq):
         """
@@ -101,13 +100,13 @@ class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         method = params['method']
         options = re.UNICODE
 
-        optionList = (
+        option_list = (
              ('dotall', re.DOTALL),
              ('ignorecase', re.IGNORECASE),
              ('multiline', re.MULTILINE),
              ('verbose', re.VERBOSE))
 
-        for s, bitflag in optionList:
+        for s, bitflag in option_list:
             if params.get(s, '') == 'true':
                 options |= bitflag
 
@@ -148,19 +147,18 @@ class ReTestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 
 class StoppableHTTPServer(BaseHTTPServer.HTTPServer):
-    def serve_forever (self):
+    def serve_forever(self):
         """Handle one request at a time until stopped."""
         global stop
         while not stop:
             self.handle_request()
 
 
-def run(server_class = StoppableHTTPServer,
-        handler_class = ReTestHandler):
+def run(server_class=StoppableHTTPServer,
+        handler_class=ReTestHandler):
     server_address = (PATH, PORT)
     httpd = server_class(server_address, handler_class)
     httpd.serve_forever()
-
 
 
 def openbrowser():
